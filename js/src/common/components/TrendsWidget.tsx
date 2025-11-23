@@ -83,7 +83,7 @@ export default class TrendsWidget extends Widget<TrendsWidgetAttrs> {
     if (!forum || typeof forum.attribute !== 'function') {
       this.loading = false;
       this.trends = [];
-      app.redraw();
+      m.redraw();
       return;
     }
 
@@ -91,7 +91,7 @@ export default class TrendsWidget extends Widget<TrendsWidgetAttrs> {
     if (!forum.attribute('canViewForum')) {
       this.loading = false;
       this.trends = [];
-      app.redraw();
+      m.redraw();
       return;
     }
 
@@ -143,7 +143,7 @@ export default class TrendsWidget extends Widget<TrendsWidgetAttrs> {
       this.trends = [];
     } finally {
       this.loading = false;
-      app.redraw();
+      m.redraw();
     }
   }
 }
