@@ -15,3 +15,11 @@ liplum-trends:
     viewWeight:
       label: 浏览权重
       help: 在热门得分计算中分配给浏览数的权重。
+    widget_limit:
+      label: 热门话题显示数量
+      help: 热门话题组件中显示的讨论数量。留空时将使用上方的“默认讨论数量限制”。
+
+  forum:
+    widget:
+      title: 热门话题
+      empty: 暂无热门话题
