@@ -8,7 +8,6 @@ import LoadingIndicator from 'flarum/common/components/LoadingIndicator';
 import Link from 'flarum/common/components/Link';
 import icon from 'flarum/common/helpers/icon';
 import Discussion from 'flarum/common/models/Discussion';
-import m from 'mithril';
 
 import { extName } from '../../common/extName';
 
@@ -80,7 +79,7 @@ export default class TrendsWidget extends Widget<TrendsWidgetAttrs> {
     if (!app.forum.attribute('canViewForum')) {
       this.loading = false;
       this.trends = [];
-      m.redraw();
+      app.redraw();
       return;
     }
 
@@ -138,7 +137,7 @@ export default class TrendsWidget extends Widget<TrendsWidgetAttrs> {
       this.trends = [];
     } finally {
       this.loading = false;
-      m.redraw();
+      app.redraw();
     }
   }
 }
