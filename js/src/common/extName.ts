@@ -1,1 +1,1 @@
-export const extName = 'liplum-trends';
+export const extName = 'lady-byron-trends';
