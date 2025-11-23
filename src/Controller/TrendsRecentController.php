@@ -3,130 +3,91 @@
 namespace Liplum\Trends\Controller;
 
 use Carbon\Carbon;
+use Flarum\Api\Controller\AbstractListController;
+use Flarum\Api\Serializer\DiscussionSerializer;
+use Flarum\Discussion\Discussion;
 use Flarum\Discussion\DiscussionRepository;
-use GuzzleHttp\Psr7\Response;
-use Psr\Http\Server\RequestHandlerInterface;
-use Psr\Http\Message\ResponseInterface;
-use Psr\Http\Message\ServerRequestInterface;
-use Illuminate\Support\Arr;
-use Flarum\Http\UrlGenerator;
+use Flarum\Http\RequestUtil;
 use Flarum\Settings\SettingsRepositoryInterface;
+use Illuminate\Support\Arr;
+use Psr\Http\Message\ServerRequestInterface;
+use Tobscure\JsonApi\Document;
 
-class TrendsRecentController implements RequestHandlerInterface
+class TrendsRecentController extends AbstractListController
 {
-  private $settings;
-  /**
-   * @var DiscussionRepository
-   */
-  protected $discussions;
-  /**
-   * @var UrlGenerator
-   */
-  protected $url;
+    /** 使用 DiscussionSerializer 输出标准 discussions 资源 */
+    public $serializer = DiscussionSerializer::class;
 
-  /**
-   * @param DiscussionRepository $discussions
-   */
-  public function __construct(
-    SettingsRepositoryInterface $settings,
-    DiscussionRepository $discussions,
-    UrlGenerator $url,
-  ) {
-    $this->settings = $settings;
-    $this->discussions = $discussions;
-    $this->url = $url;
-  }
+    /** 默认 include：作者、标签、阅读状态 */
+    public $include = ['user', 'tags', 'state'];
 
-  /**
-   * Handles the request to retrieve trending discussions.
-   *
-   * @param ServerRequestInterface $request
-   * @return ResponseInterface
-   */
-  public function handle(ServerRequestInterface $request): ResponseInterface
-  {
-    // Parse query parameters with default values
-    $queryParams = $request->getQueryParams();
-    $discussionLimit = $this->getFilteredParam(
-      $queryParams,
-      'limit',
-      $this->getSettings("liplum-trends.defaultLimit", 10),
-    );
+    protected SettingsRepositoryInterface $settings;
+    protected DiscussionRepository $discussions;
 
-    // Define weights and decay factor
-    $commentWeight = $this->getSettings("liplum-trends.commentWeight", 1.0);
-    $participantWeight = $this->getSettings("liplum-trends.participantWeight", 0.8);
-    $viewWeight = $this->getSettings("liplum-trends.viewWeight", 0.5);
-    $hoursLimit = max($this->getSettings("liplum-trends.daysLimit", 30) * 24, 1);
-
-    // Calculate time decay
-    $now = Carbon::now();
-    $hoursLimitThreshold = Carbon::now()->subHours($hoursLimit);
-
-    $discussions = $this->discussions->query()
-      ->whereNull('hidden_at')
-      ->where('is_private', 0)
-      ->where('is_locked', 0)
-      ->where('created_at', '>=', $hoursLimitThreshold)
-      ->selectRaw(
-        '*, (? * comment_count) + (? * participant_count) + (? * view_count) * POW(1 - (TIMESTAMPDIFF(HOUR, created_at, ?) / ?), 2) as trending_score',
-        [$commentWeight, $participantWeight, $viewWeight, $now, $hoursLimit]
-      )
-      ->orderByDesc('trending_score')
-      ->take($discussionLimit)
-      ->get();
-
-    $data = [
-      'data' => []
-    ];
-    foreach ($discussions as $discussion) {
-      $lastActivity = $discussion->last_posted_at ?? $discussion->created_at;
-      $data['data'][] = [
-        'type' => 'discussions',
-        'id' => (string) $discussion->id,
-        'attributes' => [
-          'title' => $discussion->title,
-          'commentCount' => $discussion->comment_count,
-          'participantCount' => $discussion->participant_count,
-          'viewCount' => $discussion->view_count,
-          'createdAt' => $discussion->created_at->toIso8601String(),
-          'lastActivityAt' => $lastActivity->toIso8601String(),
-          'shareUrl' => $this->url->to('forum')->route('discussion', ['id' => $discussion->id]),
-          'trendingScore' => $discussion->trending_score,
-        ],
-        'relationships' => [
-          'user' => [
-            'data' => [
-              'type' => 'users',
-              'id' => (string) $discussion->user->id,
-              'attributes' => [
-                'username' => $discussion->user->username
-              ]
-            ]
-          ]
-        ]
-      ];
+    public function __construct(
+        SettingsRepositoryInterface $settings,
+        DiscussionRepository $discussions
+    ) {
+        $this->settings   = $settings;
+        $this->discussions = $discussions;
     }
 
-    $response = new Response(
-      200,
-      ['Content-Type' => 'application/json'],
-      json_encode($data, JSON_UNESCAPED_UNICODE),
-    );
-    return $response;
-  }
+    /**
+     * @param ServerRequestInterface $request
+     * @param Document               $document
+     * @return \Illuminate\Support\Collection<Discussion>
+     */
+    protected function data(ServerRequestInterface $request, Document $document)
+    {
+        $actor = RequestUtil::getActor($request);
 
-  private function getSettings(string $key, $default = null)
-  {
-    return $this->settings->get($key, $default);
-  }
+        // 让 state 关系按当前用户加载（lastReadPostNumber / 自定义阅读字段用）
+        Discussion::setStateUser($actor);
 
-  private function getFilteredParam(array $queryParams, string $key, $default)
-  {
-    return filter_var(
-      Arr::get($queryParams, $key, $default),
-      FILTER_VALIDATE_INT,
-      ['options' => ['default' => $default]]
-    );
-  }
+        $queryParams = $request->getQueryParams();
+
+        $limit = $this->getFilteredParam(
+            $queryParams,
+            'limit',
+            (int) $this->settings->get('liplum-trends.defaultLimit', 10)
+        );
+
+        // 权重设置
+        $commentWeight     = (float) $this->settings->get('liplum-trends.commentWeight', 1.0);
+        $participantWeight = (float) $this->settings->get('liplum-trends.participantWeight', 0.8);
+        $viewWeight        = (float) $this->settings->get('liplum-trends.viewWeight', 0.5);
+        $daysLimit         = (int) $this->settings->get('liplum-trends.daysLimit', 30);
+        $hoursLimit        = max($daysLimit * 24, 1);
+
+        $now       = Carbon::now();
+        $threshold = (clone $now)->subHours($hoursLimit);
+
+        $query = $this->discussions->query()
+            ->select('discussions.*')
+            ->whereNull('hidden_at')
+            ->where('is_private', 0)
+            ->where('is_locked', 0)
+            ->where('created_at', '>=', $threshold)
+            ->selectRaw(
+                '(? * comment_count) + (? * participant_count) + (? * view_count) * POW(1 - (TIMESTAMPDIFF(HOUR, created_at, ?) / ?), 2) as trending_score',
+                [$commentWeight, $participantWeight, $viewWeight, $now, $hoursLimit]
+            )
+            // 权限过滤：仅返回当前用户可见的讨论
+            ->whereVisibleTo($actor)
+            ->orderByDesc('trending_score')
+            ->take($limit);
+
+        // AbstractListController 会根据 $include 自动 eager load 关系
+        return $query->get();
+    }
+
+    protected function getFilteredParam(array $queryParams, string $key, $default)
+    {
+        return filter_var(
+            Arr::get($queryParams, $key, $default),
+            FILTER_VALIDATE_INT,
+            ['options' => ['default' => $default]]
+        );
+    }
 }
+
