@@ -1,34 +1,13 @@
 {
-  "name": "liplum/flarum-trends",
+  "name": "lady-byron/trends",
   "description": "The trending discussions for Flarum",
-  "keywords": [
-    "flarum",
-    "flarum-extension",
-    "flarum-ext",
-    "hot",
-    "popular",
-    "trends",
-    "trending"
-  ],
   "type": "flarum-extension",
   "license": "MIT",
   "require": {
     "flarum/core": "^1.2",
-    "guzzlehttp/guzzle": "^7.0",
+    "afrux/forum-widgets-core": "*",
     "michaelbelgium/flarum-discussion-views": "*",
     "ext-json": "*"
-  },
-  "authors": [
-    {
-      "name": "Liplum",
-      "homepage": "https://liplum.net/",
-      "email": "Li_plum@outlook.com",
-      "role": "Developer"
-    }
-  ],
-  "support": {
-    "issues": "https://github.com/liplum/flarum-trends/issues",
-    "source": "https://github.com/liplum/flarum-trends"
   },
   "autoload": {
     "psr-4": {
