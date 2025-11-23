@@ -3,27 +3,16 @@
 import app from 'flarum/admin/app';
 import commonApp from 'flarum/common/app';
 
-import Widgets from 'flarum/extensions/afrux-forum-widgets-core/common/extend/Widgets';
-import TrendsWidget from '../forum/components/TrendsWidget';
-
+import registerWidget from '../common/register';
 import { extName } from '../common/extName';
 
 app.initializers.add(extName, () => {
   /**
    * 1) 在 Afrux Widgets Core 中注册 widget，
    *    这样后台「布局管理」里才能看到 liplum-trends-widget。
-   *    注意这里用的是 commonApp，而不是 admin app。
+   *    注意这里用的是 commonApp（和旧 widget 扩展保持一致）。
    */
-  new Widgets()
-    .add({
-      key: 'liplum-trends-widget',
-      component: TrendsWidget,
-      isDisabled: false,
-      isUnique: true,
-      placement: 'top',
-      position: 1,
-    })
-    .extend(commonApp, extName);
+  registerWidget(commonApp);
 
   /**
    * 2) 注册扩展设置项（趋势算法参数 + widget 显示数量）
