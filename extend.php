@@ -19,7 +19,7 @@ return [
     (new Extend\Routes('api'))
         ->get(
             '/trends/recent',
-            'liplum-trends.recent-trends',
+            'lady-byron-trends.recent-trends',
             TrendsRecentController::class
         ),
 
@@ -28,13 +28,12 @@ return [
 
     // 设置：趋势算法参数 + Widget 显示数量（并序列化给 forum）
     (new Extend\Settings())
-        ->default('liplum-trends.defaultLimit', 10)
-        ->default('liplum-trends.commentWeight', 1.0)
-        ->default('liplum-trends.participantWeight', 0.8)
-        ->default('liplum-trends.viewWeight', 0.5)
-        ->default('liplum-trends.daysLimit', 30)
+        ->default('lady-byron-trends.defaultLimit', 10)
+        ->default('lady-byron-trends.commentWeight', 1.0)
+        ->default('lady-byron-trends.participantWeight', 0.8)
+        ->default('lady-byron-trends.viewWeight', 0.5)
+        ->default('lady-byron-trends.daysLimit', 30)
         // widget 每页显示多少条
-        ->default('liplum-trends.limit', 5)
-        ->serializeToForum('liplum-trends.limit', 'liplum-trends.limit'),
+        ->default('lady-byron-trends.limit', 5)
+        ->serializeToForum('lady-byron-trends.limit', 'lady-byron-trends.limit'),
 ];
-
