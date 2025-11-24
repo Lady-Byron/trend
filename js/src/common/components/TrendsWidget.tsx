@@ -1,17 +1,11 @@
-// js/src/common/components/TrendsWidget.tsx
-
 import app from 'flarum/common/app';
-
 import Widget, {
   WidgetAttrs,
 } from 'flarum/extensions/afrux-forum-widgets-core/common/components/Widget';
-
 import LoadingIndicator from 'flarum/common/components/LoadingIndicator';
 import Link from 'flarum/common/components/Link';
 import icon from 'flarum/common/helpers/icon';
 import Discussion from 'flarum/common/models/Discussion';
-
-import { extName } from '../extName';
 
 interface TrendsWidgetAttrs extends WidgetAttrs {}
 
@@ -20,7 +14,7 @@ export default class TrendsWidget extends Widget<TrendsWidgetAttrs> {
   trends: Discussion[] = [];
 
   className(): string {
-    return 'liplum-trends-widget';
+    return 'lady-byron-trends-widget';
   }
 
   icon(): string {
@@ -28,7 +22,7 @@ export default class TrendsWidget extends Widget<TrendsWidgetAttrs> {
   }
 
   title(): string {
-    return app.translator.trans(`${extName}.forum.widget.title`) as string;
+    return app.translator.trans('lady-byron-trends.forum.widget.title') as string;
   }
 
   content() {
@@ -38,29 +32,29 @@ export default class TrendsWidget extends Widget<TrendsWidgetAttrs> {
 
     if (!this.trends || this.trends.length === 0) {
       return (
-        <div className="liplum-trends-empty">
-          {app.translator.trans(`${extName}.forum.widget.empty`)}
+        <div className="lady-byron-trends-empty">
+          {app.translator.trans('lady-byron-trends.forum.widget.empty')}
         </div>
       );
     }
 
     return (
-      <div className="liplum-trends-content">
-        <ul className="liplum-trends-list">
+      <div className="lady-byron-trends-content">
+        <ul className="lady-byron-trends-list">
           {this.trends.map((disc) => (
-            <li className="liplum-trends-item" key={disc.id()}>
+            <li className="lady-byron-trends-item" key={disc.id()}>
               <Link
                 href={app.route.discussion(disc)}
-                className="liplum-trends-link"
+                className="lady-byron-trends-link"
               >
                 {/* 左侧装饰点 */}
-                <span className="liplum-trends-bullet" />
+                <span className="lady-byron-trends-bullet" />
 
                 {/* 标题 */}
-                <span className="liplum-trends-title">{disc.title()}</span>
+                <span className="lady-byron-trends-title">{disc.title()}</span>
 
                 {/* 右侧评论数 */}
-                <span className="liplum-trends-stats">
+                <span className="lady-byron-trends-stats">
                   {icon('fas fa-comment-alt')} {disc.commentCount()}
                 </span>
               </Link>
@@ -98,7 +92,8 @@ export default class TrendsWidget extends Widget<TrendsWidgetAttrs> {
     this.loading = true;
 
     // Widget 显示条数（默认 5）
-    const rawLimit = forum.attribute('liplum-trends.limit');
+    // 修改：使用 lady-byron-trends 键名
+    const rawLimit = forum.attribute('lady-byron-trends.limit');
     const limit =
       typeof rawLimit === 'number'
         ? rawLimit
@@ -139,7 +134,7 @@ export default class TrendsWidget extends Widget<TrendsWidgetAttrs> {
       this.trends = filtered.slice(0, limit);
     } catch (error) {
       // eslint-disable-next-line no-console
-      console.error('[liplum-trends] Error fetching trends:', error);
+      console.error('[lady-byron-trends] Error fetching trends:', error);
       this.trends = [];
     } finally {
       this.loading = false;
