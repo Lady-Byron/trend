@@ -12,5 +12,5 @@ export default function registerWidget(app: Application) {
       placement: 'top',
       position: 1,
     })
-    .extend(app, 'lady-byron-trends');
+    .extend(app, 'lady-byron-trend');
 }
