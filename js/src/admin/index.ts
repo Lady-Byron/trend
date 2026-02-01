@@ -8,7 +8,7 @@ app.initializers.add('lady-byron-trends', () => {
   registerWidget(commonApp);
 
   // 2) 注册扩展设置项
-  const extension = app.extensionData.for('lady-byron-trends');
+  const extension = app.extensionData.for('lady-byron-trend');
 
   extension
     .registerSetting({
