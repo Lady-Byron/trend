@@ -6,8 +6,11 @@
   "require": {
     "flarum/core": "^1.2",
     "afrux/forum-widgets-core": "*",
-    "michaelbelgium/flarum-discussion-views": "*",
     "ext-json": "*"
+  },
+  "suggest": {
+    "fof/discussion-views": "Provides view_count for trending score calculation (Flarum 2.0 compatible)",
+    "michaelbelgium/flarum-discussion-views": "Provides view_count for trending score calculation (Flarum 1.x only)"
   },
   "autoload": {
     "psr-4": {

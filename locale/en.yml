@@ -2,10 +2,10 @@ lady-byron-trends:
   admin:
     defaultLimit:
       label: Default Discussion Limit
-      help: The maximum number of discussions to return. 10 by default.
+      help: The maximum number of discussions to return from the API. 10 by default.
     daysLimit:
       label: Trending Time Window (Days)
-      help: The time window in days within which discussions are considered for trending. Older discussions will have their trending scores decay to zero within this time.
+      help: Only discussions with activity within this many days are considered. Older ones are excluded from the query.
     commentWeight:
       label: Comment Weight
       help: Weight assigned to the comment count in the trending score calculation.
@@ -14,7 +14,13 @@ lady-byron-trends:
       help: Weight assigned to the participant count in the trending score calculation.
     viewWeight:
       label: View Weight
-      help: Weight assigned to the view count in the trending score calculation.
+      help: Weight assigned to the view count in the trending score calculation. Ignored if no view-count extension is installed.
+    widget_limit:
+      label: Widget Display Limit
+      help: Number of discussions shown in the trending widget. Defaults to 5.
+    gravity:
+      label: Gravity (Decay Rate)
+      help: Controls how fast older discussions lose ranking. Higher values favor newer content. Default is 1.5 (Hacker News uses 1.8).
 
   forum:
     widget:

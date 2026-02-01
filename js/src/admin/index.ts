@@ -62,6 +62,16 @@ app.initializers.add('lady-byron-trends', () => {
       type: 'number',
     })
     .registerSetting({
+      setting: 'lady-byron-trends.gravity',
+      label: app.translator.trans(
+        'lady-byron-trends.admin.gravity.label'
+      ),
+      help: app.translator.trans(
+        'lady-byron-trends.admin.gravity.help'
+      ),
+      type: 'number',
+    })
+    .registerSetting({
       setting: 'lady-byron-trends.limit',
       label: app.translator.trans(
         'lady-byron-trends.admin.widget_limit.label'

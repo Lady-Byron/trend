@@ -33,7 +33,7 @@ return [
         ->default('lady-byron-trends.participantWeight', 0.8)
         ->default('lady-byron-trends.viewWeight', 0.5)
         ->default('lady-byron-trends.daysLimit', 30)
-        // widget 每页显示多少条
+        ->default('lady-byron-trends.gravity', 1.5)
         ->default('lady-byron-trends.limit', 5)
         ->serializeToForum('lady-byron-trends.limit', 'lady-byron-trends.limit'),
 ];

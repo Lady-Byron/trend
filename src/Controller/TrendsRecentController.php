@@ -9,27 +9,33 @@ use Flarum\Discussion\Discussion;
 use Flarum\Discussion\DiscussionRepository;
 use Flarum\Http\RequestUtil;
 use Flarum\Settings\SettingsRepositoryInterface;
+use Illuminate\Database\ConnectionInterface;
 use Illuminate\Support\Arr;
 use Psr\Http\Message\ServerRequestInterface;
 use Tobscure\JsonApi\Document;
 
 class TrendsRecentController extends AbstractListController
 {
-    /** 使用 DiscussionSerializer 输出标准 discussions 资源 */
     public $serializer = DiscussionSerializer::class;
 
-    /** 默认 include：作者、标签、阅读状态 */
     public $include = ['user', 'tags', 'state'];
+
+    private const MAX_LIMIT = 50;
 
     protected SettingsRepositoryInterface $settings;
     protected DiscussionRepository $discussions;
+    protected ConnectionInterface $db;
+
+    private static ?bool $hasViewCount = null;
 
     public function __construct(
         SettingsRepositoryInterface $settings,
-        DiscussionRepository $discussions
+        DiscussionRepository $discussions,
+        ConnectionInterface $db
     ) {
-        $this->settings   = $settings;
+        $this->settings    = $settings;
         $this->discussions = $discussions;
+        $this->db          = $db;
     }
 
     /**
@@ -40,46 +46,50 @@ class TrendsRecentController extends AbstractListController
     protected function data(ServerRequestInterface $request, Document $document)
     {
         $actor = RequestUtil::getActor($request);
+        $actor->assertCan('viewForum');
 
-        // 让 state 关系按当前用户加载（lastReadPostNumber / 自定义阅读字段用）
         Discussion::setStateUser($actor);
 
         $queryParams = $request->getQueryParams();
 
-        // ⬇️ 修改：键名统一为 lady-byron-trends
         $limit = $this->getFilteredParam(
             $queryParams,
             'limit',
             (int) $this->settings->get('lady-byron-trends.defaultLimit', 10)
         );
+        $limit = min(max($limit, 1), self::MAX_LIMIT);
 
-        // ⬇️ 修改：权重设置键名统一
         $commentWeight     = (float) $this->settings->get('lady-byron-trends.commentWeight', 1.0);
         $participantWeight = (float) $this->settings->get('lady-byron-trends.participantWeight', 0.8);
         $viewWeight        = (float) $this->settings->get('lady-byron-trends.viewWeight', 0.5);
-        $daysLimit         = (int) $this->settings->get('lady-byron-trends.daysLimit', 30);
-        
-        $hoursLimit        = max($daysLimit * 24, 1);
+        $gravity           = (float) $this->settings->get('lady-byron-trends.gravity', 1.5);
+        $daysLimit         = max((int) $this->settings->get('lady-byron-trends.daysLimit', 30), 1);
 
         $now       = Carbon::now();
-        $threshold = (clone $now)->subHours($hoursLimit);
+        $threshold = (clone $now)->subDays($daysLimit);
+
+        $hasViewCount = $this->hasViewCountColumn();
+
+        if ($hasViewCount) {
+            $scoreSql = 'LOG(1 + ? * comment_count + ? * participant_count + ? * view_count)'
+                      . ' / POW(TIMESTAMPDIFF(HOUR, COALESCE(last_posted_at, created_at), ?) + 2, ?)';
+            $bindings = [$commentWeight, $participantWeight, $viewWeight, $now, $gravity];
+        } else {
+            $scoreSql = 'LOG(1 + ? * comment_count + ? * participant_count)'
+                      . ' / POW(TIMESTAMPDIFF(HOUR, COALESCE(last_posted_at, created_at), ?) + 2, ?)';
+            $bindings = [$commentWeight, $participantWeight, $now, $gravity];
+        }
 
         $query = $this->discussions->query()
             ->select('discussions.*')
             ->whereNull('hidden_at')
             ->where('is_private', 0)
-            ->where('is_locked', 0)
             ->where('created_at', '>=', $threshold)
-            ->selectRaw(
-                '((? * comment_count) + (? * participant_count) + (? * view_count)) * POW(1 - (TIMESTAMPDIFF(HOUR, created_at, ?) / ?), 2) as trending_score',
-                [$commentWeight, $participantWeight, $viewWeight, $now, $hoursLimit]
-            )
-            // 权限过滤：仅返回当前用户可见的讨论
+            ->selectRaw("$scoreSql as trending_score", $bindings)
             ->whereVisibleTo($actor)
             ->orderByDesc('trending_score')
             ->take($limit);
 
-        // AbstractListController 会根据 $include 自动 eager load 关系
         return $query->get();
     }
 
@@ -90,5 +100,16 @@ class TrendsRecentController extends AbstractListController
             FILTER_VALIDATE_INT,
             ['options' => ['default' => $default]]
         );
+    }
+
+    private function hasViewCountColumn(): bool
+    {
+        if (self::$hasViewCount === null) {
+            self::$hasViewCount = $this->db
+                ->getSchemaBuilder()
+                ->hasColumn('discussions', 'view_count');
+        }
+
+        return self::$hasViewCount;
     }
 }
